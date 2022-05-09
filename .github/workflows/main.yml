@@ -1,0 +1,15 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: akhileshns/heroku-deploy@master
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "katalon-tunnel"
+          heroku_email: "minhthong.it44@gmail.com"
