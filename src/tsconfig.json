@@ -1,0 +1,28 @@
+{
+  "include": [
+    "./**/*.js",
+    "./**/*.d.ts",
+    // "./**/*.js",
+    // "./**/*.ts",
+  ],
+  "exclude": [
+    "node_modules",
+    "*.spec.ts"
+  ],
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "CommonJS",
+    "target": "ES5",
+    "allowJs": true,
+    "checkJs": false,
+    "outDir": "@type",
+    "lib": [
+      "ES2019"
+    ]
+  },
+  "typeAcquisition": {
+    "include": [
+      "moment"
+    ]
+  }
+}
