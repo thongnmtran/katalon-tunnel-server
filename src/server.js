@@ -44,6 +44,10 @@ class Server {
         agentSocket = socket;
         console.log('Agent registered: ' + agentSocket.id);
         io.emit('agent', agentSocket.id);
+        agentSocket.on('dicconnect', () => {
+          console.log('Agent disconnected: ' + agentSocket.id);
+          io.emit('agent', null);
+        })
       })
     });
 
