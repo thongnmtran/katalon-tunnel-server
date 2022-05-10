@@ -43,7 +43,7 @@ class Server {
       socket.on('register-agent', () => {
         agentSocket = socket;
         console.log('Agent registered: ' + agentSocket.id);
-        socket.emit('agent', agentSocket.id);
+        io.emit('agent', agentSocket.id);
       })
     });
 
