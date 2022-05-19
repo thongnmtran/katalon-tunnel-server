@@ -16,7 +16,8 @@ const EventName = {
   getInstances: 'getInstances',
   setInstances: 'setInstances',
   registerInstance: 'registerInstance',
-  startNewInstance: 'startNewInstance'
+  startNewInstance: 'startNewInstance',
+  stop: 'stop'
 };
 
 class Server {
@@ -39,9 +40,9 @@ class Server {
     const id = getId(instance);
     if (!(id in this.instances)) {
       const existedInstance = this.startingInstances.pop();
-      instance.startedTime = existedInstance.startedTime;
+      instance.startedTime = existedInstance?.startedTime || Date.now();
     }
-    this.instances[getId(instance)] = instance;
+    this.instances[id] = instance;
   }
 
   removeInstance(instance) {
@@ -75,7 +76,12 @@ class Server {
       });
 
       socket.on(EventName.sendTo, ({ target, event, args }) => {
-        io.to(target).emit(event, ...args);
+        if (target) {
+          io.to(target).emit(event, ...args);
+        } else if (event === EventName.stop) {
+          this.startingInstances.pop();
+          io.emit(EventName.setInstances, this.rawInstances);
+        }
       });
 
       socket.on(EventName.getInstances, (callback) => {
