@@ -71,9 +71,9 @@ class Server {
     io.on(EventName.connection, (socket) => {
       console.log(`> New client connected "${getId(socket)}"`);
 
-      socket.on(EventName.log, (log, tunnelId) => {
-        if (tunnelId) {
-          io.to(tunnelId).emit(EventName.log, log);
+      socket.on(EventName.log, ({ log, to }) => {
+        if (to) {
+          io.to(to).emit(EventName.log, log);
         } else {
           io.emit(EventName.log, log);
         }
