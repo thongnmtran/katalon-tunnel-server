@@ -71,13 +71,17 @@ class Server {
     io.on(EventName.connection, (socket) => {
       console.log(`> New client connected "${getId(socket)}"`);
 
-      socket.on(EventName.log, (log) => {
-        io.emit(EventName.log, log);
+      socket.on(EventName.log, (log, tunnelId) => {
+        if (tunnelId) {
+          io.to(tunnelId).emit(EventName.log, log);
+        } else {
+          io.emit(EventName.log, log);
+        }
       });
 
       socket.on(EventName.sendTo, ({ target, event, args }) => {
         if (target) {
-          io.to(target).emit(event, ...args);
+          io.to(target).emit(event, getId(socket), ...args);
         } else if (event === EventName.stop) {
           this.startingInstances.pop();
           io.emit(EventName.setInstances, this.rawInstances);
