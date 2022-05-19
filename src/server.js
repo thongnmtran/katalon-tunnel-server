@@ -72,6 +72,7 @@ class Server {
       console.log(`> New client connected "${getId(socket)}"`);
 
       socket.on(EventName.log, ({ log, to }) => {
+        console.log('log', log, to);
         if (to) {
           io.to(to).emit(EventName.log, log);
         } else {
