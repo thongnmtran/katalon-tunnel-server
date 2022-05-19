@@ -1,59 +1,109 @@
-
-const SocketIO = require('socket.io');
 const express = require('express');
 const http = require('http');
-const { Server: IOServer } = require("socket.io");
-// var p2p = require('socket.io-p2p-server');
+const { Server: IOServer } = require('socket.io');
+const axios = require('axios');
 
+
+function getId(socket) {
+  return socket?.id;
+}
+
+const EventName = {
+  connection: 'connection',
+  disconnect: 'disconnect',
+  log: 'log',
+  sendTo: 'sendTo',
+  getInstances: 'getInstances',
+  setInstances: 'setInstances',
+  registerInstance: 'registerInstance',
+  startNewInstance: 'startNewInstance'
+};
 
 class Server {
+  instances = {};
+
+  startingInstances = [];
+
+  get rawInstances() {
+    return [
+      ...this.startingInstances,
+      ...Object.values(this.instances)
+    ]
+      .map((instanceI) => ({
+        id: getId(instanceI),
+        startedTime: instanceI.startedTime
+      }));
+  }
+
+  registerInstance(instance) {
+    const id = getId(instance);
+    if (!(id in this.instances)) {
+      const existedInstance = this.startingInstances.pop();
+      instance.startedTime = existedInstance.startedTime;
+    }
+    this.instances[getId(instance)] = instance;
+  }
+
+  removeInstance(instance) {
+    delete this.instances[getId(instance)];
+  }
+
+  startNewInstance() {
+    return axios.post('https://cloudbuild.googleapis.com/v1/projects/tidal-mode-347602/triggers/cloud-agent-autorun:webhook?key=AIzaSyAr76dUVOK2Nx2Nuhpy8aFui5LXJILc2yc&secret=ebeb0e7a-4adf-49da-86a2-edad7bfe03e8', {})
+      .then(() => {
+        this.startingInstances.unshift({ startedTime: Date.now() });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
+
   start() {
     const app = express();
     const server = http.createServer(app);
-    let agentSocket;
-
     const io = new IOServer(server);
-    // io.use(p2p.Server);
 
     app.get('/', (req, res) => {
-      res.sendFile(__dirname + '/index.html');
+      res.sendFile(`${__dirname}/index.html`);
     });
 
-    io.on('connection', (socket) => {
-      console.log('a user connected');
-      socket.on('log', (log) => {
-        console.log(log);
-        io.emit('log', log)
-      })
-      socket.on('send-to', ({ target, event, args }) => {
+    io.on(EventName.connection, (socket) => {
+      console.log(`> New client connected "${getId(socket)}"`);
+
+      socket.on(EventName.log, (log) => {
+        io.emit(EventName.log, log);
+      });
+
+      socket.on(EventName.sendTo, ({ target, event, args }) => {
         io.to(target).emit(event, ...args);
-      })
-      socket.on('list-sessions', () => {
-        const sessions = [...io.sockets.sockets].map(([id]) => id);
-        console.log(sessions);
-        socket.emit('sessions', sessions);
-      })
-      socket.on('get-agent', (callback) => {
-        if (agentSocket?.connected) {
-          callback?.(agentSocket.id);
-        } else {
-          callback?.(null);
-        }
-      })
-      socket.on('register-agent', () => {
-        agentSocket = socket;
-        console.log('Agent registered: ' + agentSocket.id);
-        io.emit('agent', agentSocket.id);
-        agentSocket.on('dicconnect', () => {
-          console.log('Agent disconnected: ' + agentSocket.id);
-          io.emit('agent', null);
-        })
-      })
+      });
+
+      socket.on(EventName.getInstances, (callback) => {
+        callback?.(this.rawInstances);
+      });
+
+      socket.on(EventName.startNewInstance, async () => {
+        await this.startNewInstance();
+        io.emit(EventName.setInstances, this.rawInstances);
+      });
+
+      socket.on(EventName.registerInstance, () => {
+        this.registerInstance(socket);
+
+        io.emit(EventName.setInstances, this.rawInstances);
+
+        socket.on(EventName.disconnect, () => {
+          this.removeInstance(socket);
+          io.emit(EventName.setInstances, this.rawInstances);
+        });
+      });
     });
 
     const port = process.env.PORT || 3000;
     server.listen(port, () => {
-      console.log('listening on *:3000');
+      console.log('\r\n'.padEnd(80, '-'));
+      console.log(`\r\n>>> Server has been started on port ${port}`);
+      console.log('\r\n'.padEnd(80, '-'));
     });
   }
 }
