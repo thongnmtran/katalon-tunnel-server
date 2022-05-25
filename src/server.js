@@ -50,7 +50,8 @@ class Server {
   }
 
   startNewInstance() {
-    return axios.post('https://cloudbuild.googleapis.com/v1/projects/tidal-mode-347602/triggers/cloud-agent-autorun:webhook?key=AIzaSyAr76dUVOK2Nx2Nuhpy8aFui5LXJILc2yc&secret=ebeb0e7a-4adf-49da-86a2-edad7bfe03e8', {})
+    const { GC_ACCESS_KEY, GC_SECRET_VALUE } = process.env;
+    return axios.post(`https://cloudbuild.googleapis.com/v1/projects/tidal-mode-347602/triggers/cloud-agent-autorun:webhook?key=${GC_ACCESS_KEY}&secret=${GC_SECRET_VALUE}`, {})
       .then(() => {
         this.startingInstances.unshift({ startedTime: Date.now() });
       })
